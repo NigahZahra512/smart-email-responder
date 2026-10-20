@@ -44,9 +44,6 @@ An AI-powered **n8n workflow** that reads incoming emails, understands their int
 
 > ⚠️ No credentials or API keys are included in this repository. You must add your own.
 
-## 🎥 Demo
-
-Watch the demo video: **[add your YouTube / Upwork / Drive link here]**
 
 ## 📌 Use Cases
 
