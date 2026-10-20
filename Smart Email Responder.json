@@ -1,0 +1,334 @@
+{
+  "name": "Smart Email Responder",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fd3ea80a-d028-47bb-90cd-9d242f3a3c1d",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "MpqYCYAoA3IjtSw1",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.snippet }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Order",
+              "description": "Emails related to a customer's order. This includes new order confirmations, order placed notifications, payment confirmation for an order, shipping or delivery updates, order status or tracking requests, and requests to cancel, return or change an existing order."
+            },
+            {
+              "category": "Inquiry",
+              "description": "Emails where a person is asking a question or seeking information. This includes questions about products, services, prices, availability, features, business hours, or any general enquiry that is not about an existing order."
+            }
+          ]
+        },
+        "options": {
+          "fallback": "other"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        -16
+      ],
+      "id": "fc609edd-b628-4481-824e-0f9f8cc5a1d5",
+      "name": "Text Classifier",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Customer name: {{ $('Gmail Trigger').item.json.From }}\nEmail subject: {{ $('Gmail Trigger').item.json.Subject }}\nEmail content: {{ $('Gmail Trigger').item.json.snippet }}\n\nWrite a reply to this order-related email.",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a professional customer support assistant for Cognisol AI. You write email replies for customers who contacted us about an ORDER (new order, payment, shipping, delivery, tracking, cancellation, return or change).  Rules: - Be polite, clear and professional. Keep the reply between 60 and 120 words. - Reply in the same language as the customer's email. - Acknowledge the customer's order-related request and tell them our team is looking into it. - NEVER invent order numbers, prices, delivery dates, tracking details or policies. If a detail is not in the email, say our team will confirm it shortly. - If the customer's name is available, greet them by name. Otherwise use \"Hello\". - Sign off as \"Cognisol AI Support Team\". - Return ONLY the email body text. Do not include a subject line."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        544,
+        -448
+      ],
+      "id": "29846b8d-80c5-4219-8a94-de17e602a359",
+      "name": "Basic LLM Chain",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Re: {{ $('Gmail Trigger').item.json.Subject }}",
+        "message": "={{ $json.text }}",
+        "options": {
+          "sendTo": "={{ $('Gmail Trigger').item.json.From }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        -448
+      ],
+      "id": "e5a62e63-9c7a-4ea0-ac8c-fdc63c156e13",
+      "name": "Create a draft",
+      "webhookId": "bd859f59-a0f2-40c5-8f3e-dd3039db9bc9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "X8yjT88ptfTQ8dWb",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        208
+      ],
+      "id": "5e3a70f2-1e0e-4236-9ace-2b80b4667f25",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "38osGDpGONRaVicg",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        544,
+        -272
+      ],
+      "id": "b3ab0283-b0e9-4b15-a992-51fccd6f3a98",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "38osGDpGONRaVicg",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Customer name: {{ $('Gmail Trigger').item.json.From }}\nEmail subject: {{ $('Gmail Trigger').item.json.Subject }}\nEmail content: {{ $('Gmail Trigger').item.json.snippet }}\n\nWrite a reply to this inquiry.",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=   You are a professional customer support assistant for Cognisol AI. You write email replies for people who sent us an INQUIRY (a question about our products, services, pricing, availability or general information).\n\n   Rules:\n   - Be friendly, helpful and professional. Keep the reply between 60 and 120 words.\n   - Reply in the same language as the sender's email.\n   - Thank the person for their interest and respond to their question in general terms.\n   - NEVER invent prices, discounts, availability, features, dates or promises. If you do not have the information, say our team will share the exact details shortly and invite them to share any extra requirements.\n   - If the sender's name is available, greet them by name. Otherwise use \"Hello\".\n   - Sign off as \"Cognisol AI Team\".\n   - Return ONLY the email body text. Do not include a subject line."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        704,
+        -64
+      ],
+      "id": "3c095fca-5fae-4472-9682-583480b92190",
+      "name": "Basic LLM Chain1",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Re: {{ $('Gmail Trigger').item.json.Subject }}",
+        "message": "={{ $json.text }}",
+        "options": {
+          "sendTo": "={{ $('Gmail Trigger').item.json.From }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1088,
+        -64
+      ],
+      "id": "8bee5ca8-01c8-4a97-9e0d-bfa625b5eff7",
+      "name": "Create a draft1",
+      "webhookId": "bd859f59-a0f2-40c5-8f3e-dd3039db9bc9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "X8yjT88ptfTQ8dWb",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        704,
+        112
+      ],
+      "id": "77c296a2-e48f-474d-bc7e-4cb948a90e51",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "38osGDpGONRaVicg",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        720,
+        320
+      ],
+      "id": "6eac8ec5-ea11-44cf-9208-d6ab096f0db8",
+      "name": "Ignore (Other)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignore (Other)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Create a draft1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ec09c154-e547-4c88-87d8-9fbca4036fde",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "86c9bdc8322e1ecad9fec5f3856d03757b7fef9fd5a4ea6a6b1538e28e78c267"
+  },
+  "nodeGroups": [],
+  "id": "uybg3fmbh0UjRn7k",
+  "tags": []
+}
